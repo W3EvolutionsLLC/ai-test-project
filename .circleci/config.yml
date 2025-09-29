@@ -106,7 +106,7 @@ jobs:
             echo "Generating validation report..."
             
             # Create validation report
-            cat > /tmp/validation-report.json << EOF
+            cat > /tmp/validation-report.json \\<< EOF
             {
               "validation_status": "PASSED",
               "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
@@ -152,7 +152,7 @@ jobs:
             fi
             
             # Create notification payload
-            cat > /tmp/notification.json << EOF
+            cat > /tmp/notification.json \\<< EOF
             {
               "event": "validation_complete",
               "status": "$VALIDATION_STATUS",
