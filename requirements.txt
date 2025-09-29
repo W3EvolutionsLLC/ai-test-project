@@ -1,0 +1,26 @@
+# AI Test Project Dependencies
+
+# Core dependencies
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Development dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.7.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Environment-specific dependencies
+# DEV environment
+sqlite3
+
+# INTEGRATION/STAGING/PROD environments  
+psycopg2-binary>=2.9.7
+
+# Logging and monitoring
+structlog>=23.1.0
+
+# Testing utilities
+factory-boy>=3.3.0
+faker>=19.3.0

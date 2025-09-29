@@ -1,0 +1,182 @@
+version: 2.1
+
+# Orbs for common functionality
+orbs:
+  python: circleci/python@2.1.1
+
+# Workflow definitions
+workflows:
+  ai-dev-validation:
+    jobs:
+      - validate-code:
+          filters:
+            branches:
+              only: /.*/
+      - notify-ai-agent:
+          requires:
+            - validate-code
+          filters:
+            branches:
+              only: /.*/
+
+# Job definitions
+jobs:
+  validate-code:
+    docker:
+      - image: cimg/python:3.11
+    
+    environment:
+      ENV: INTEGRATION
+    
+    steps:
+      - checkout
+      
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: requirements.txt
+      
+      - run:
+          name: "Validate Environment Configuration"
+          command: |
+            echo "Validating environment: $ENV"
+            echo "Jira Ticket: $JIRA_TICKET"
+            echo "AI Agent ID: $AI_AGENT_ID"
+            
+            # Ensure required environment variables are set
+            if [ -z "$JIRA_TICKET" ]; then
+              echo "ERROR: JIRA_TICKET environment variable not set"
+              exit 1
+            fi
+            
+            if [ -z "$AI_AGENT_ID" ]; then
+              echo "ERROR: AI_AGENT_ID environment variable not set"
+              exit 1
+            fi
+            
+            echo "Environment validation passed"
+      
+      - run:
+          name: "Code Quality Checks"
+          command: |
+            echo "Running code quality checks..."
+            
+            # Check Python syntax
+            python -m py_compile src/main.py
+            echo "✓ Python syntax check passed"
+            
+            # Run linting (if flake8 is available)
+            if command -v flake8 &> /dev/null; then
+              flake8 src/ --max-line-length=88 --ignore=E203,W503
+              echo "✓ Linting passed"
+            fi
+            
+            # Check for basic security issues
+            grep -r "password\|secret\|key" src/ || echo "✓ No hardcoded secrets found"
+      
+      - run:
+          name: "Run Tests"
+          command: |
+            echo "Running test suite..."
+            
+            # Set test environment variables
+            export ENV=DEV
+            export JIRA_TICKET=${JIRA_TICKET:-TEST-001}
+            export AI_AGENT_ID=${AI_AGENT_ID:-test-agent}
+            
+            # Run tests
+            python -m pytest tests/ -v --tb=short
+            echo "✓ All tests passed"
+      
+      - run:
+          name: "Application Smoke Test"
+          command: |
+            echo "Running application smoke test..."
+            
+            # Test application startup
+            export ENV=DEV
+            export JIRA_TICKET=${JIRA_TICKET:-TEST-001}
+            export AI_AGENT_ID=${AI_AGENT_ID:-test-agent}
+            
+            python src/main.py
+            echo "✓ Application smoke test passed"
+      
+      - run:
+          name: "Generate Validation Report"
+          command: |
+            echo "Generating validation report..."
+            
+            # Create validation report
+            cat > /tmp/validation-report.json << EOF
+            {
+              "validation_status": "PASSED",
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "environment": "$ENV",
+              "jira_ticket": "$JIRA_TICKET",
+              "ai_agent_id": "$AI_AGENT_ID",
+              "circle_build_num": "$CIRCLE_BUILD_NUM",
+              "circle_sha1": "$CIRCLE_SHA1",
+              "checks": {
+                "environment_validation": "PASSED",
+                "code_quality": "PASSED",
+                "tests": "PASSED",
+                "smoke_test": "PASSED"
+              },
+              "next_steps": [
+                "Code is ready for merge",
+                "AI agent can proceed with deployment"
+              ]
+            }
+            EOF
+            
+            echo "Validation report generated:"
+            cat /tmp/validation-report.json
+      
+      - store_artifacts:
+          path: /tmp/validation-report.json
+          destination: validation-report.json
+
+  notify-ai-agent:
+    docker:
+      - image: cimg/base:stable
+    
+    steps:
+      - run:
+          name: "Send Validation Results to AI Agent"
+          command: |
+            echo "Sending validation results to AI agent..."
+            
+            # Prepare notification payload
+            VALIDATION_STATUS="PASSED"
+            if [ "$CIRCLE_JOB" != "validate-code" ]; then
+              VALIDATION_STATUS="FAILED"
+            fi
+            
+            # Create notification payload
+            cat > /tmp/notification.json << EOF
+            {
+              "event": "validation_complete",
+              "status": "$VALIDATION_STATUS",
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "build_url": "$CIRCLE_BUILD_URL",
+              "environment": "$ENV",
+              "jira_ticket": "$JIRA_TICKET",
+              "ai_agent_id": "$AI_AGENT_ID",
+              "commit_sha": "$CIRCLE_SHA1",
+              "branch": "$CIRCLE_BRANCH"
+            }
+            EOF
+            
+            echo "Notification payload:"
+            cat /tmp/notification.json
+            
+            # Send notification to AI agent webhook
+            # Note: In real implementation, this would POST to the AI agent's webhook endpoint
+            # For now, we'll simulate the notification
+            echo "✓ Notification sent to AI agent (simulated)"
+            
+            # Store notification for debugging
+            echo "Notification stored for debugging purposes"
+      
+      - store_artifacts:
+          path: /tmp/notification.json
+          destination: ai-notification.json

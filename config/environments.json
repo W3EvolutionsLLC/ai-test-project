@@ -1,0 +1,102 @@
+{
+  "environments": {
+    "DEV": {
+      "description": "Development environment for AI agents",
+      "database": {
+        "type": "sqlite",
+        "url": "sqlite:///dev.db"
+      },
+      "services": {
+        "redis": false,
+        "mysql": false,
+        "mongodb": false,
+        "elasticsearch": false
+      },
+      "debug": true,
+      "log_level": "DEBUG",
+      "features": {
+        "hot_reload": true,
+        "debug_toolbar": true,
+        "profiling": true
+      }
+    },
+    "INTEGRATION": {
+      "description": "Integration testing environment",
+      "database": {
+        "type": "postgresql",
+        "url": "postgresql://localhost/integration_db"
+      },
+      "services": {
+        "redis": true,
+        "mysql": false,
+        "mongodb": true,
+        "elasticsearch": false
+      },
+      "debug": false,
+      "log_level": "INFO",
+      "features": {
+        "hot_reload": false,
+        "debug_toolbar": false,
+        "profiling": false
+      }
+    },
+    "STAGING": {
+      "description": "Staging environment for pre-production testing",
+      "database": {
+        "type": "postgresql",
+        "url": "postgresql://staging-db/app_db"
+      },
+      "services": {
+        "redis": true,
+        "mysql": true,
+        "mongodb": true,
+        "elasticsearch": true
+      },
+      "debug": false,
+      "log_level": "WARNING",
+      "features": {
+        "hot_reload": false,
+        "debug_toolbar": false,
+        "profiling": false
+      }
+    },
+    "PROD": {
+      "description": "Production environment",
+      "database": {
+        "type": "postgresql",
+        "url": "postgresql://prod-db/app_db"
+      },
+      "services": {
+        "redis": true,
+        "mysql": true,
+        "mongodb": true,
+        "elasticsearch": true
+      },
+      "debug": false,
+      "log_level": "ERROR",
+      "features": {
+        "hot_reload": false,
+        "debug_toolbar": false,
+        "profiling": false
+      }
+    }
+  },
+  "service_configurations": {
+    "redis": {
+      "port": 6379,
+      "max_connections": 100
+    },
+    "mysql": {
+      "port": 3306,
+      "charset": "utf8mb4"
+    },
+    "mongodb": {
+      "port": 27017,
+      "auth_source": "admin"
+    },
+    "elasticsearch": {
+      "port": 9200,
+      "index_prefix": "ai-test"
+    }
+  }
+}
